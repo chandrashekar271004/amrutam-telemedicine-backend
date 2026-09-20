@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
-import { prisma } from '../../lib/prisma';
-import { AppError } from '../../middleware/error';
+import { prisma } from '../../lib/prisma.js';
+import { AppError } from '../../middleware/error.js';
 
 export async function createBooking(
   patientId: string,

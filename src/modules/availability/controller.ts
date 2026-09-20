@@ -1,5 +1,5 @@
 import { RequestHandler } from 'express';
-import * as s from './service';
+import * as s from './service.js';
 
 export const create: RequestHandler = async (req, res) =>
   res.status(201).json({

@@ -1,6 +1,6 @@
 import { Queue, Worker } from 'bullmq';
-import { env } from '../config/env';
-import { logger } from '../lib/logger';
+import { env } from '../config/env.js';
+import { logger } from '../lib/logger.js';
 
 const connection={url:env.REDIS_URL};
 export const notificationQueue=new Queue('notifications',{connection});

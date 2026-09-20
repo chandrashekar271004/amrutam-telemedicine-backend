@@ -1,1 +1,1 @@
-import {Router} from 'express'; import {requireAuth,requireRole} from '../../middleware/auth'; import {Role} from '@prisma/client'; import * as c from './controller'; const r=Router(); r.get('/analytics',requireAuth,requireRole(Role.ADMIN),c.analytics); export default r;
+import {Router} from 'express'; import {requireAuth,requireRole} from '../../middleware/auth.js'; import {Role} from '@prisma/client'; import * as c from './controller.js'; const r=Router(); r.get('/analytics',requireAuth,requireRole(Role.ADMIN),c.analytics); export default r;

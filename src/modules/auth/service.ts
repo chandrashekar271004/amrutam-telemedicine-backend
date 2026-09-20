@@ -1,12 +1,12 @@
 import { randomBytes, createHash } from 'crypto';
-import { prisma } from '../../lib/prisma';
-import { hashPassword, verifyPassword } from '../../utils/password';
-import { signAccessToken } from '../../utils/jwt';
-import { AppError } from '../../middleware/error';
-import { audit } from '../audit/service';
+import { prisma } from '../../lib/prisma.js';
+import { hashPassword, verifyPassword } from '../../utils/password.js';
+import { signAccessToken } from '../../utils/jwt.js';
+import { AppError } from '../../middleware/error.js';
+import { audit } from '../audit/service.js';
 import { authenticator } from 'otplib';
 import QRCode from 'qrcode';
-import { env } from '../../config/env';
+import { env } from '../../config/env.js';
 
 export async function register(input: { email: string; phone?: string; password: string; firstName: string; lastName: string }) {
   const existing = await prisma.user.findUnique({ where: { email: input.email.toLowerCase() } });

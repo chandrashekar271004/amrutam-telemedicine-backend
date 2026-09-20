@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { validate } from '../../middleware/validate';
-import { requireAuth } from '../../middleware/auth';
-import { authRateLimit } from '../../middleware/rateLimit';
-import * as c from './controller';
-import { registerSchema, loginSchema } from './schema';
+import { validate } from '../../middleware/validate.js';
+import { requireAuth } from '../../middleware/auth.js';
+import { authRateLimit } from '../../middleware/rateLimit.js';
+import * as c from './controller.js';
+import { registerSchema, loginSchema } from './schema.js';
 import { z } from 'zod';
 const router = Router();
 router.post('/register', authRateLimit, validate(registerSchema), c.register);

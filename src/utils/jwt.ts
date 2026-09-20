@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { env } from '../config/env';
+import { env } from '../config/env.js';
 import { Role } from '@prisma/client';
 
 export type AccessClaims = { sub: string; role: Role; type: 'access' };

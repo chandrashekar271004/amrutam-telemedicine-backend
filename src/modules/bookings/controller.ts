@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import * as service from './service';
+import * as service from './service.js';
 
 export async function create(
   req: Request,
@@ -19,7 +19,7 @@ export async function create(
       data: booking,
     };
 
-    await (req as any).saveIdempotency?.(201, body);
+    await req.saveIdempotency?.(201, body);
 
     res.status(201).json(body);
   } catch (error) {

@@ -1,11 +1,16 @@
-import { prisma } from '../../lib/prisma';
-import { AppError } from '../../middleware/error';
-import { audit } from '../audit/service';
+import { prisma } from '../../lib/prisma.js';
+import { Prisma } from '@prisma/client';
+import { AppError } from '../../middleware/error.js';
+import { audit } from '../audit/service.js';
+
+type Medicine = Prisma.InputJsonValue;
+
+type UserRole = 'PATIENT' | 'DOCTOR' | 'ADMIN';
 
 export async function create(
   doctorUserId: string,
   consultationId: string,
-  medicines: any[],
+  medicines: Medicine[],
   instructions?: string,
 ) {
   const consultation = await prisma.consultation.findUnique({
@@ -65,7 +70,7 @@ export async function create(
 
 export async function get(
   patientId: string,
-  role: any,
+  role: UserRole,
   id: string,
 ) {
   const prescription = await prisma.prescription.findUnique({
@@ -93,14 +98,22 @@ export async function get(
     role === 'PATIENT' &&
     prescription.consultation.patientId !== patientId
   ) {
-    throw new AppError(403, 'Forbidden', 'FORBIDDEN');
+    throw new AppError(
+      403,
+      'Forbidden',
+      'FORBIDDEN',
+    );
   }
 
   if (
     role === 'DOCTOR' &&
     prescription.consultation.doctorId !== patientId
   ) {
-    throw new AppError(403, 'Forbidden', 'FORBIDDEN');
+    throw new AppError(
+      403,
+      'Forbidden',
+      'FORBIDDEN',
+    );
   }
 
   return prescription;

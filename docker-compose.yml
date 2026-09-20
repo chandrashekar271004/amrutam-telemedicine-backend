@@ -63,7 +63,7 @@ services:
       - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
 
   jaeger:
-    image: jaegertracing/all-in-one:1.73
+    image: jaegertracing/all-in-one:1.76.0
     ports: ["16686:16686", "4317:4317", "4318:4318"]
 
   otel-collector:
@@ -71,7 +71,7 @@ services:
     command: ["--config=/etc/otelcol-contrib/config.yaml"]
     volumes:
       - ./infra/otel/collector.yaml:/etc/otelcol-contrib/config.yaml:ro
-    ports: ["4318:4318"]
+    ports: ["14318:4318"]
     depends_on: [jaeger]
 
 volumes:

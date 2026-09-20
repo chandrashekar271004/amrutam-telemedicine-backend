@@ -1,7 +1,25 @@
-import { prisma } from '../../lib/prisma';
+import { prisma } from '../../lib/prisma.js';
 
-export async function audit(input: {
-  actorId?: string; action: string; resource: string; resourceId?: string; ipAddress?: string; userAgent?: string; metadata?: unknown;
-}) {
-  await prisma.auditLog.create({ data: { ...input, metadata: input.metadata as any } });
+type AuditInput = {
+  actorId?: string;
+  action: string;
+  resource: string;
+  resourceId?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  metadata?: unknown;
+};
+
+export async function audit(input: AuditInput) {
+  await prisma.auditLog.create({
+    data: {
+      actorId: input.actorId,
+      action: input.action,
+      resource: input.resource,
+      resourceId: input.resourceId,
+      ipAddress: input.ipAddress,
+      userAgent: input.userAgent,
+      metadata: input.metadata ?? undefined,
+    },
+  });
 }

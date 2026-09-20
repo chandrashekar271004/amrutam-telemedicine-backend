@@ -1,4 +1,4 @@
-import {prisma} from '../../lib/prisma'; import {AppError} from '../../middleware/error'; import {audit} from '../audit/service';
+import {prisma} from '../../lib/prisma.js'; import {AppError} from '../../middleware/error.js'; import {audit} from '../audit/service.js';
 export async function create(doctorId:string,actorId:string,startsAt:string,endsAt:string){
  if(startsAt>=endsAt) throw new AppError(400,'endsAt must be after startsAt','INVALID_SLOT');
  const d=await prisma.doctor.findUnique({where:{id:doctorId}}); if(!d||d.userId!==actorId) throw new AppError(403,'Only the doctor can create their slots','FORBIDDEN');

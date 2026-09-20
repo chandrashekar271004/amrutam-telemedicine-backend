@@ -1,7 +1,7 @@
 import request from 'supertest';
 import { describe, it, expect } from 'vitest';
-import { app } from '../src/app';
-import { prisma } from '../src/lib/prisma';
+import { app } from '../src/app.js';
+import { prisma } from '../src/lib/prisma.js';
 
 async function loginPatient() {
   const email = `booking-test-${Date.now()}@example.com`;
