@@ -1,0 +1,3 @@
+import { z } from 'zod';
+export const createDoctorSchema = z.object({ body: z.object({ userId: z.string().uuid(), specialty: z.string().min(2).max(100), registrationNo: z.string().min(3).max(100), bio: z.string().max(2000).optional(), consultationFee: z.coerce.number().nonnegative(), experienceYears: z.coerce.number().int().min(0).max(80).default(0) }), params: z.object({}), query: z.object({}) });
+export const doctorSearchSchema = z.object({ body: z.object({}), params: z.object({}), query: z.object({ specialty: z.string().optional(), verified: z.enum(['true','false']).optional(), page: z.coerce.number().int().min(1).default(1), limit: z.coerce.number().int().min(1).max(50).default(20) }) });

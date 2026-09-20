@@ -1,0 +1,1 @@
+import {Router} from 'express'; import {validate} from '../../middleware/validate'; import {searchSchema} from './schema'; import * as c from './controller'; const r=Router(); r.get('/doctors',validate(searchSchema),c.search); export default r;

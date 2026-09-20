@@ -1,0 +1,464 @@
+openapi: 3.0.3
+info:
+  title: Amrutam Telemedicine API
+  version: 1.0.0
+  description: Production-oriented telemedicine backend API.
+
+servers:
+  - url: http://localhost:5000
+    description: Local development server
+
+tags:
+  - name: Health
+  - name: Authentication
+  - name: Doctors
+  - name: Availability
+  - name: Bookings
+  - name: Consultations
+  - name: Prescriptions
+  - name: Admin
+
+paths:
+
+  /health:
+    get:
+      tags: [Health]
+      summary: Basic API health check
+      responses:
+        "200":
+          description: API is healthy
+
+  /health/ready:
+    get:
+      tags: [Health]
+      summary: Dependency readiness check
+      responses:
+        "200":
+          description: API and dependencies are ready
+        "503":
+          description: One or more dependencies are unavailable
+
+  /api/v1/auth/register:
+    post:
+      tags: [Authentication]
+      summary: Register a patient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Patient registered
+        "400":
+          description: Validation error
+
+  /api/v1/auth/login:
+    post:
+      tags: [Authentication]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+        "401":
+          description: Invalid credentials
+
+  /api/v1/doctors:
+    get:
+      tags: [Doctors]
+      summary: List verified doctors
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - name: specialty
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Doctor list
+
+    post:
+      tags: [Doctors]
+      summary: Create doctor profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DoctorRequest"
+      responses:
+        "201":
+          description: Doctor created
+        "403":
+          description: Forbidden
+
+  /api/v1/doctors/{id}:
+    get:
+      tags: [Doctors]
+      summary: Get doctor by ID
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Doctor details
+        "404":
+          description: Doctor not found
+
+  /api/v1/availability/{doctorId}:
+    get:
+      tags: [Availability]
+      summary: List doctor availability
+      parameters:
+        - name: doctorId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Availability slots
+
+    post:
+      tags: [Availability]
+      summary: Create availability slot
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: doctorId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AvailabilityRequest"
+      responses:
+        "201":
+          description: Slot created
+        "403":
+          description: Forbidden
+
+  /api/v1/bookings:
+    post:
+      tags: [Bookings]
+      summary: Book an available slot
+      description: Uses transactional conditional update and requires an Idempotency-Key.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookingRequest"
+      responses:
+        "201":
+          description: Booking created
+        "400":
+          description: Invalid request
+        "401":
+          description: Unauthorized
+        "409":
+          description: Slot unavailable or idempotency request in progress
+
+  /api/v1/bookings/{id}:
+    get:
+      tags: [Bookings]
+      summary: Get patient booking
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Booking details
+        "404":
+          description: Booking not found
+
+  /api/v1/consultations:
+    get:
+      tags: [Consultations]
+      summary: List consultations
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Consultation list
+
+  /api/v1/consultations/book:
+    post:
+      tags: [Consultations]
+      summary: Book consultation using consultation endpoint
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "201":
+          description: Consultation booked
+
+  /api/v1/consultations/{id}/status:
+    patch:
+      tags: [Consultations]
+      summary: Update consultation status
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Id"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StatusRequest"
+      responses:
+        "200":
+          description: Status updated
+        "400":
+          description: Invalid status transition
+        "403":
+          description: Forbidden
+
+  /api/v1/prescriptions/{consultationId}:
+    post:
+      tags: [Prescriptions]
+      summary: Create or update prescription
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: consultationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PrescriptionRequest"
+      responses:
+        "201":
+          description: Prescription created
+        "403":
+          description: Doctor not authorized
+
+  /api/v1/prescriptions/{id}:
+    get:
+      tags: [Prescriptions]
+      summary: Get prescription
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Prescription details
+        "403":
+          description: Forbidden
+
+  /api/v1/admin/analytics:
+    get:
+      tags: [Admin]
+      summary: Get platform analytics
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Analytics
+        "403":
+          description: Admin access required
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        maxLength: 128
+
+  schemas:
+
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - password
+        - firstName
+        - lastName
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        firstName:
+          type: string
+        lastName:
+          type: string
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    DoctorRequest:
+      type: object
+      required:
+        - userId
+        - specialty
+        - registrationNo
+        - consultationFee
+      properties:
+        userId:
+          type: string
+          format: uuid
+        specialty:
+          type: string
+        registrationNo:
+          type: string
+        consultationFee:
+          type: number
+          format: double
+        experienceYears:
+          type: integer
+          minimum: 0
+
+    AvailabilityRequest:
+      type: object
+      required:
+        - startsAt
+        - endsAt
+      properties:
+        startsAt:
+          type: string
+          format: date-time
+        endsAt:
+          type: string
+          format: date-time
+
+    BookingRequest:
+      type: object
+      required:
+        - slotId
+      properties:
+        slotId:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          maxLength: 1000
+
+    StatusRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - SCHEDULED
+            - IN_PROGRESS
+            - COMPLETED
+            - CANCELLED
+            - NO_SHOW
+
+    PrescriptionRequest:
+      type: object
+      required:
+        - medicines
+      properties:
+        medicines:
+          type: array
+          items:
+            type: object
+            required:
+              - name
+              - dosage
+              - frequency
+              - duration
+            properties:
+              name:
+                type: string
+              dosage:
+                type: string
+              frequency:
+                type: string
+              duration:
+                type: string
+        instructions:
+          type: string

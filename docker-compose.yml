@@ -1,0 +1,78 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: telemedicine
+      POSTGRES_PASSWORD: telemedicine
+      POSTGRES_DB: telemedicine
+    ports: ["5434:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U telemedicine -d telemedicine"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: .
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: postgresql://telemedicine:telemedicine@postgres:5432/telemedicine?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: change-this-to-a-long-random-secret-before-production
+      JWT_EXPIRES_IN: 15m
+      REFRESH_TOKEN_EXPIRES_DAYS: 30
+      CORS_ORIGIN: http://localhost:3000
+      LOG_LEVEL: info
+      OTEL_SERVICE_NAME: amrutam-telemedicine-api
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+    ports: ["5000:5000"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      otel-collector: { condition: service_started }
+    command: sh -c "npx prisma migrate deploy && node dist/server.js"
+
+  worker:
+    build: .
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://telemedicine:telemedicine@postgres:5432/telemedicine?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: change-this-to-a-long-random-secret-before-production
+      LOG_LEVEL: info
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    command: node dist/src/jobs/worker.js
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    ports: ["9090:9090"]
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.73
+    ports: ["16686:16686", "4317:4317", "4318:4318"]
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.135.0
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    volumes:
+      - ./infra/otel/collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+    ports: ["4318:4318"]
+    depends_on: [jaeger]
+
+volumes:
+  pgdata:

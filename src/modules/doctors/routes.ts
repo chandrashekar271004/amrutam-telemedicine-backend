@@ -1,0 +1,2 @@
+import {Router} from 'express'; import {requireAuth,requireRole} from '../../middleware/auth'; import {validate} from '../../middleware/validate'; import {Role} from '@prisma/client'; import * as c from './controller'; import {createDoctorSchema,doctorSearchSchema} from './schema';
+const r=Router(); r.get('/',validate(doctorSearchSchema),c.search); r.post('/',requireAuth,requireRole(Role.ADMIN),validate(createDoctorSchema),c.create); r.post('/:id/verify',requireAuth,requireRole(Role.ADMIN),c.verify); export default r;

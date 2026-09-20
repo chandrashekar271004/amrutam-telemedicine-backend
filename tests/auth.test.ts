@@ -1,0 +1,2 @@
+import request from 'supertest'; import { describe,it,expect } from 'vitest'; import { app } from '../src/app'; import { prisma } from '../src/lib/prisma';
+describe('auth',()=>{it('registers a patient',async()=>{const email=`test-${Date.now()}@example.com`; const r=await request(app).post('/api/v1/auth/register').send({email,password:'StrongPassword123!',firstName:'Test',lastName:'Patient'}); expect(r.status).toBe(201); expect(r.body.data.email).toBe(email); await prisma.user.delete({where:{email}});});});

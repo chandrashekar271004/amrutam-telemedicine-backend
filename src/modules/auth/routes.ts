@@ -1,0 +1,13 @@
+import { Router } from 'express';
+import { validate } from '../../middleware/validate';
+import { requireAuth } from '../../middleware/auth';
+import { authRateLimit } from '../../middleware/rateLimit';
+import * as c from './controller';
+import { registerSchema, loginSchema } from './schema';
+import { z } from 'zod';
+const router = Router();
+router.post('/register', authRateLimit, validate(registerSchema), c.register);
+router.post('/login', authRateLimit, validate(loginSchema), c.login);
+router.post('/mfa/setup', requireAuth, c.setupMfa);
+router.post('/mfa/enable', requireAuth, validate(z.object({ body: z.object({ code: z.string().regex(/^\d{6}$/) }), params: z.object({}), query: z.object({}) })), c.enableMfa);
+export default router;

@@ -1,0 +1,196 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  PATIENT
+  DOCTOR
+  ADMIN
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum SlotStatus {
+  AVAILABLE
+  HELD
+  BOOKED
+  BLOCKED
+}
+
+enum ConsultationStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+model User {
+  id              String         @id @default(uuid()) @db.Uuid
+  email           String         @unique
+  phone           String?        @unique
+  passwordHash    String
+  role            Role           @default(PATIENT)
+  mfaEnabled      Boolean        @default(false)
+  mfaSecret       String?
+  isActive        Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  profile         Profile?
+  doctor          Doctor?
+  patientBookings Consultation[] @relation("PatientConsultations")
+  doctorBookings  Consultation[] @relation("DoctorConsultations")
+  prescriptions   Prescription[] @relation("Prescriber")
+  auditLogs       AuditLog[]
+  payments        Payment[]
+  refreshTokens   RefreshToken[]
+
+  @@index([role, isActive])
+  @@index([createdAt])
+}
+
+model Profile {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @unique @db.Uuid
+  firstName String
+  lastName  String
+  gender    Gender?
+  dob       DateTime?
+  avatarUrl String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Doctor {
+  id              String             @id @default(uuid()) @db.Uuid
+  userId          String             @unique @db.Uuid
+  specialty       String
+  registrationNo  String             @unique
+  bio             String?
+  consultationFee Decimal            @db.Decimal(10, 2)
+  experienceYears Int                @default(0)
+  isVerified      Boolean            @default(false)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slots           AvailabilitySlot[]
+  consultations   Consultation[]     @relation("DoctorConsultationProfile")
+
+  @@index([specialty, isVerified])
+}
+
+model AvailabilitySlot {
+  id            String        @id @default(uuid()) @db.Uuid
+  doctorId      String        @db.Uuid
+  startsAt      DateTime
+  endsAt        DateTime
+  status        SlotStatus    @default(AVAILABLE)
+  holdExpiresAt DateTime?
+  version       Int           @default(0)
+  createdAt     DateTime      @default(now())
+  doctor        Doctor        @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  consultation  Consultation?
+
+  @@unique([doctorId, startsAt, endsAt])
+  @@index([doctorId, startsAt, status])
+  @@index([startsAt, status])
+}
+
+model Consultation {
+  id          String             @id @default(uuid()) @db.Uuid
+  patientId   String             @db.Uuid
+  doctorId    String             @db.Uuid
+  slotId      String             @unique @db.Uuid
+  status      ConsultationStatus @default(SCHEDULED)
+  reason      String?
+  notes       String?
+  scheduledAt DateTime
+  completedAt DateTime?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  patient       User             @relation("PatientConsultations", fields: [patientId], references: [id])
+  doctor        User             @relation("DoctorConsultations", fields: [doctorId], references: [id], map: "consultation_doctor_user_fkey")
+  doctorProfile Doctor           @relation("DoctorConsultationProfile", fields: [doctorId], references: [userId], map: "consultation_doctor_profile_fkey")
+  slot          AvailabilitySlot @relation(fields: [slotId], references: [id])
+
+  prescription Prescription?
+  payment      Payment?
+
+  @@index([patientId, scheduledAt])
+  @@index([doctorId, scheduledAt])
+  @@index([status, scheduledAt])
+}
+
+model Prescription {
+  id             String       @id @default(uuid()) @db.Uuid
+  consultationId String       @unique @db.Uuid
+  prescriberId   String       @db.Uuid
+  medicinesJson  Json
+  instructions   String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  consultation   Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+  prescriber     User         @relation("Prescriber", fields: [prescriberId], references: [id])
+}
+
+model Payment {
+  id             String        @id @default(uuid()) @db.Uuid
+  consultationId String        @unique @db.Uuid
+  userId         String        @db.Uuid
+  amount         Decimal       @db.Decimal(10, 2)
+  currency       String        @default("INR")
+  status         PaymentStatus @default(PENDING)
+  providerRef    String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  consultation   Consultation  @relation(fields: [consultationId], references: [id])
+  user           User          @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @db.Uuid
+  action     String
+  resource   String
+  resourceId String?
+  ipAddress  String?
+  userAgent  String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId, createdAt])
+  @@index([resource, resourceId, createdAt])
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}
